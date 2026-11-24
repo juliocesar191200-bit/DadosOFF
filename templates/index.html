@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DadosOFF</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #1a1a26;
+      --border: #252535;
+      --accent: #7c6df0;
+      --accent2: #4ecdc4;
+      --orange: #f97316;
+      --orange2: #fb923c;
+      --text: #e2e2f0;
+      --text2: #7777a0;
+      --success: #4ade80;
+      --error: #f87171;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 18px 36px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px;
+      background: var(--surface);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 19px; flex-shrink: 0;
+    }
+    .brand h1 { font-size: 19px; font-weight: 700; letter-spacing: -.4px; }
+    .brand p  { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    .version  {
+      margin-left: auto; font-size: 11px; color: var(--text2);
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 20px;
+    }
+
+    main { flex: 1; padding: 32px 36px; max-width: 900px; width: 100%; margin: 0 auto; }
+
+    /* Mode selector */
+    .mode-selector {
+      display: flex; gap: 10px; margin-bottom: 20px;
+    }
+    .mode-btn {
+      flex: 1; padding: 14px 18px; border-radius: 14px; border: 2px solid var(--border);
+      background: var(--surface); cursor: pointer; transition: all .2s; text-align: left;
+    }
+    .mode-btn:hover { border-color: var(--accent); }
+    .mode-btn.active-clean {
+      border-color: var(--accent);
+      background: rgba(124,109,240,.08);
+    }
+    .mode-btn.active-reencode {
+      border-color: var(--orange);
+      background: rgba(249,115,22,.08);
+    }
+    .mode-btn .mode-icon { font-size: 22px; margin-bottom: 6px; }
+    .mode-btn .mode-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .mode-btn .mode-desc  { font-size: 12px; color: var(--text2); line-height: 1.4; }
+    .mode-btn.active-clean  .mode-title { color: #a99cf5; }
+    .mode-btn.active-reencode .mode-title { color: var(--orange2); }
+
+    .mode-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 2px 7px; border-radius: 8px; margin-left: 6px; vertical-align: middle;
+    }
+    .badge-gpu { background: rgba(74,222,128,.15); color: var(--success); }
+    .badge-cpu { background: rgba(249,115,22,.15); color: var(--orange2); }
+
+    /* Quality buttons */
+    .quality-btn {
+      flex: 1; padding: 13px 14px; border-radius: 12px;
+      border: 2px solid var(--border); background: var(--surface);
+      cursor: pointer; transition: all .2s; text-align: center;
+    }
+    .quality-btn:hover { border-color: #f97316; }
+    .quality-btn.active-quality { border-color: #f97316; background: rgba(249,115,22,.08); }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 20px; padding: 44px 36px; text-align: center;
+      cursor: pointer; transition: all .25s; background: var(--surface); position: relative;
+    }
+    .drop-zone:hover, .drop-zone.active { border-color: var(--accent); background: rgba(124,109,240,.05); }
+    .drop-zone.reencode-mode:hover, .drop-zone.reencode-mode.active { border-color: var(--orange); background: rgba(249,115,22,.05); }
+    .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .drop-icon { font-size: 40px; margin-bottom: 12px; }
+    .drop-zone h2 { font-size: 18px; font-weight: 600; margin-bottom: 5px; }
+    .drop-zone p  { color: var(--text2); font-size: 13px; }
+    .formats { display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+    .fmt {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 3px 8px; font-size: 11px; color: var(--text2); font-weight: 600;
+    }
+
+    /* Stats */
+    .stats {
+      display: flex; margin-top: 22px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 13px; overflow: hidden;
+    }
+    .stat { flex: 1; padding: 14px 18px; border-right: 1px solid var(--border); }
+    .stat:last-child { border-right: none; }
+    .stat-val { font-size: 22px; font-weight: 700; }
+    .stat-lbl { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* File cards */
+    .file-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+    .file-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 15px; overflow: hidden; transition: border-color .3s;
+    }
+    .file-card.processing  { border-color: rgba(124,109,240,.4); }
+    .file-card.reencoding  { border-color: rgba(249,115,22,.4); }
+    .file-card.done        { border-color: rgba(74,222,128,.3); }
+    .file-card.error       { border-color: rgba(248,113,113,.3); }
+
+    .card-header { padding: 15px 18px; display: flex; align-items: center; gap: 13px; }
+
+    .file-icon {
+      width: 38px; height: 38px; background: var(--surface2);
+      border-radius: 9px; display: flex; align-items: center;
+      justify-content: center; font-size: 17px; flex-shrink: 0;
+    }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-sub  { font-size: 12px; color: var(--text2); margin-top: 3px; }
+
+    .prog-wrap { height: 3px; background: var(--border); border-radius: 3px; margin-top: 7px; overflow: hidden; }
+    .prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; width: 30%; animation: shimmer 1.4s ease-in-out infinite; }
+    .prog-fill.reencode { background: linear-gradient(90deg, var(--orange), var(--orange2)); }
+    @keyframes shimmer { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+    .prog-fill.done  { width: 100%; background: var(--success); animation: none; }
+    .prog-fill.error { width: 100%; background: var(--error);   animation: none; }
+    .prog-fill.queued { width: 12%; animation: none; opacity: .4; }
+
+    .badge {
+      padding: 4px 11px; border-radius: 20px; font-size: 11px;
+      font-weight: 700; white-space: nowrap; flex-shrink: 0;
+    }
+    .badge.queued     { background: rgba(119,119,160,.12); color: var(--text2); }
+    .badge.processing { background: rgba(124,109,240,.15); color: #a99cf5; }
+    .badge.reencoding { background: rgba(249,115,22,.15);  color: var(--orange2); }
+    .badge.done       { background: rgba(74,222,128,.15);  color: var(--success); }
+    .badge.error      { background: rgba(248,113,113,.15); color: var(--error); }
+
+    /* Metadata panel */
+    .meta-panel { border-top: 1px solid var(--border); padding: 14px 18px; display: none; }
+    .meta-panel.visible { display: block; }
+    .meta-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .6px;
+      color: var(--text2); text-transform: uppercase; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .meta-count {
+      font-size: 11px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 2px 8px; color: var(--text2);
+    }
+    .meta-grid { display: flex; flex-direction: column; gap: 5px; }
+    .meta-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 7px 10px; border-radius: 8px;
+      background: var(--surface2); transition: all .4s ease; font-size: 13px;
+    }
+    .meta-row.removing { opacity: 0; transform: translateX(10px); }
+    .meta-row.removed  { background: rgba(74,222,128,.05); border: 1px solid rgba(74,222,128,.12); }
+    .meta-key { color: var(--text2); font-size: 12px; min-width: 140px; flex-shrink: 0; }
+    .meta-val { color: var(--text); word-break: break-all; flex: 1; }
+    .meta-val.struck { text-decoration: line-through; color: var(--text2); }
+    .removed-tag {
+      font-size: 10px; font-weight: 700; color: var(--success);
+      background: rgba(74,222,128,.12); padding: 2px 7px;
+      border-radius: 10px; white-space: nowrap; flex-shrink: 0;
+      opacity: 0; transition: opacity .3s .3s;
+    }
+    .removed-tag.show { opacity: 1; }
+    .meta-empty { font-size: 13px; color: var(--text2); padding: 4px 0; font-style: italic; }
+
+    /* Actions */
+    .actions { margin-top: 24px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+    .btn {
+      padding: 11px 22px; border-radius: 11px; border: none; cursor: pointer;
+      font-size: 14px; font-weight: 600; display: flex; align-items: center;
+      gap: 7px; transition: all .2s;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #9b8ef8); color: #fff; }
+    .btn-primary.reencode-mode { background: linear-gradient(135deg, var(--orange), var(--orange2)); }
+    .btn-primary:hover    { opacity: .88; transform: translateY(-1px); }
+    .btn-primary:active   { transform: translateY(0); }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); color: #a99cf5; }
+
+    /* Folder picker */
+    .folder-bar {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 13px 16px; margin-bottom: 18px;
+    }
+    .folder-label { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+    .folder-input-row { display: flex; gap: 8px; align-items: center; }
+    .folder-input {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 9px; padding: 9px 13px; color: var(--text); font-size: 13px;
+      outline: none; transition: border-color .2s; font-family: inherit;
+    }
+    .folder-input:focus { border-color: var(--accent); }
+    .folder-input.error { border-color: var(--error); }
+    .folder-input.ok    { border-color: var(--success); }
+    .folder-hint { font-size: 11px; color: var(--text2); margin-top: 6px; }
+
+    footer {
+      padding: 14px 36px; border-top: 1px solid var(--border);
+      text-align: center; font-size: 12px; color: var(--text2);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🛡</div>
+  <div class="brand">
+    <h1>DadosOFF</h1>
+    <p>Limpeza de metadados de vídeo</p>
+  </div>
+  <span class="version">v{{ version }}</span>
+</header>
+
+<main>
+
+  <!-- Pasta de saída -->
+  <div class="folder-bar">
+    <div class="folder-label">📂 Salvar vídeos limpos em</div>
+    <div class="folder-input-row">
+      <input class="folder-input" id="folderInput" type="text"
+             placeholder="Cole ou digite o caminho da pasta..."
+             onchange="saveFolder()" onblur="saveFolder()">
+      <button class="btn btn-ghost" onclick="openOutput()" style="padding:9px 14px;font-size:13px">Abrir 📁</button>
+    </div>
+    <div class="folder-hint" id="folderHint">Cole o caminho da pasta desejada. Exemplo: C:\Videos\Criativos\Hoje</div>
+  </div>
+
+  <!-- Seletor de modo -->
+  <div class="mode-selector">
+    <div class="mode-btn active-clean" id="modeClean" onclick="setMode('clean')">
+      <div class="mode-icon">⚡</div>
+      <div class="mode-title">Limpar Metadados</div>
+      <div class="mode-desc">Remove datas, GPS, câmera e dados pessoais. Instantâneo, sem alterar qualidade.</div>
+    </div>
+    <div class="mode-btn" id="modeReencode" onclick="setMode('reencode')">
+      <div class="mode-icon">🔄</div>
+      <div class="mode-title">Limpar + Re-encodar <span class="mode-badge badge-gpu">RTX 3060</span></div>
+      <div class="mode-desc">Muda a identidade do vídeo. Ideal para criativos recusados pelo Facebook.</div>
+    </div>
+    <div class="mode-btn" id="modeCompress" onclick="setMode('compress')">
+      <div class="mode-icon">📦</div>
+      <div class="mode-title">Comprimir <span class="mode-badge badge-gpu">RTX 3060</span></div>
+      <div class="mode-desc">Reduz o tamanho do arquivo mantendo boa qualidade. Você escolhe o nível.</div>
+    </div>
+  </div>
+
+  <!-- Qualidade de compressão -->
+  <div id="qualityPanel" style="display:none; margin-bottom:18px;">
+    <div style="font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Nível de compressão</div>
+    <div style="display:flex;gap:10px;">
+      <div class="quality-btn" id="qAlta" onclick="setQuality('alta')">
+        <div style="font-size:18px;margin-bottom:4px;">🟢</div>
+        <div style="font-weight:700;font-size:13px;">Alta qualidade</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;">~30-40% menor<br>Imperceptível</div>
+        <div style="font-size:12px;margin-top:6px;min-height:16px;" id="estAlta"></div>
+      </div>
+      <div class="quality-btn active-quality" id="qMedia" onclick="setQuality('media')">
+        <div style="font-size:18px;margin-bottom:4px;">🟡</div>
+        <div style="font-weight:700;font-size:13px;">Balanceada</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;">~50-60% menor<br>Leve diferença</div>
+        <div style="font-size:12px;margin-top:6px;min-height:16px;" id="estMedia"></div>
+      </div>
+      <div class="quality-btn" id="qMaxima" onclick="setQuality('maxima')">
+        <div style="font-size:18px;margin-bottom:4px;">🔴</div>
+        <div style="font-weight:700;font-size:13px;">Máxima compressão</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;">~65-75% menor<br>Qualidade reduzida</div>
+        <div style="font-size:12px;margin-top:6px;min-height:16px;" id="estMaxima"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" multiple accept=".mp4,.mov,.avi,.mkv,.wmv,.flv,.webm,.m4v">
+    <div class="drop-icon">🎬</div>
+    <h2>Arraste seus vídeos aqui</h2>
+    <p>ou clique para selecionar os arquivos</p>
+    <div class="formats">
+      <span class="fmt">MP4</span><span class="fmt">MOV</span><span class="fmt">AVI</span>
+      <span class="fmt">MKV</span><span class="fmt">WMV</span><span class="fmt">FLV</span>
+      <span class="fmt">WEBM</span><span class="fmt">M4V</span>
+    </div>
+  </div>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat">
+      <div class="stat-val" id="sTotal">0</div>
+      <div class="stat-lbl">Total</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="sDone" style="color:var(--success)">0</div>
+      <div class="stat-lbl">Concluídos</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="sProc" style="color:#a99cf5">0</div>
+      <div class="stat-lbl">Processando</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="sErr" style="color:var(--error)">0</div>
+      <div class="stat-lbl">Erros</div>
+    </div>
+  </div>
+
+  <div class="file-list" id="fileList"></div>
+
+  <div class="actions">
+    <button class="btn btn-ghost"   id="btnOpen"  onclick="openOutput()" style="display:none">📁 Abrir Saída</button>
+    <button class="btn btn-ghost"   id="btnClear" onclick="clearAll()"   style="display:none">🗑 Limpar Lista</button>
+    <button class="btn btn-primary" id="btnProc"  onclick="startProcess()" style="display:none">⚡ Limpar Metadados</button>
+  </div>
+
+</main>
+
+<footer>Processamento 100% local — nenhum dado sai do seu computador.</footer>
+
+<script>
+  const ALLOWED = ['.mp4','.mov','.avi','.mkv','.wmv','.flv','.webm','.m4v'];
+  let pending = [], jobMap = {}, busy = false, currentMode = 'clean', currentQuality = 'media';
+
+  const LABELS = {
+    title:'Título', artist:'Artista', author:'Autor', album:'Álbum',
+    comment:'Comentário', description:'Descrição', copyright:'Copyright',
+    creation_time:'Data de criação', modification_time:'Data de modificação',
+    date:'Data', year:'Ano', encoder:'Software de edição', encoded_by:'Codificado por',
+    software:'Software', location:'Localização GPS', make:'Fabricante câmera',
+    model:'Modelo câmera', device:'Dispositivo', producer:'Produtor',
+    'com.apple.quicktime.location.iso6709':'GPS (Apple)',
+  };
+
+  function labelFor(k) { return LABELS[k.toLowerCase()] || k; }
+  function ext(n) { return n.slice(n.lastIndexOf('.')).toLowerCase(); }
+  function fmtSize(b) { return b >= 1e9 ? (b/1e9).toFixed(1)+' GB' : (b/1e6).toFixed(1)+' MB'; }
+
+  function setQuality(q) {
+    currentQuality = q;
+    ['Alta','Media','Maxima'].forEach(n => {
+      document.getElementById('q'+n).classList.remove('active-quality');
+    });
+    const map = { alta:'Alta', media:'Media', maxima:'Maxima' };
+    document.getElementById('q'+map[q]).classList.add('active-quality');
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    const dz  = document.getElementById('dropZone');
+    const btn = document.getElementById('btnProc');
+    const qp  = document.getElementById('qualityPanel');
+    document.getElementById('modeClean').className    = 'mode-btn' + (mode==='clean'    ? ' active-clean'    : '');
+    document.getElementById('modeReencode').className = 'mode-btn' + (mode==='reencode' ? ' active-reencode' : '');
+    document.getElementById('modeCompress').className = 'mode-btn' + (mode==='compress' ? ' active-reencode' : '');
+    qp.style.display = mode === 'compress' ? 'block' : 'none';
+    if (mode === 'reencode') {
+      dz.classList.add('reencode-mode');
+      btn.className = 'btn btn-primary reencode-mode';
+      btn.innerHTML = '🔄 Limpar + Re-encodar';
+    } else if (mode === 'compress') {
+      dz.classList.add('reencode-mode');
+      btn.className = 'btn btn-primary reencode-mode';
+      btn.innerHTML = '📦 Comprimir Vídeos';
+    } else {
+      dz.classList.remove('reencode-mode');
+      btn.className = 'btn btn-primary';
+      btn.innerHTML = '⚡ Limpar Metadados';
+    }
+  }
+
+  const dz = document.getElementById('dropZone');
+  const fi = document.getElementById('fileInput');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('active'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('active'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('active'); addFiles([...e.dataTransfer.files]); });
+  fi.addEventListener('change', () => { addFiles([...fi.files]); fi.value = ''; });
+
+  // Ratios de compressão estimados por preset
+  const COMPRESS_RATIOS = { alta: 0.65, media: 0.44, maxima: 0.28 };
+
+  function fmt(b) { return b >= 1e9 ? (b/1e9).toFixed(2)+' GB' : (b/1e6).toFixed(0)+' MB'; }
+
+  function updateEstimates() {
+    const total = pending.reduce((s, f) => s + f.size, 0);
+    if (!total) {
+      ['Alta','Media','Maxima'].forEach(n => document.getElementById('est'+n).innerHTML = '');
+      return;
+    }
+    const original = fmt(total);
+    const presets = { Alta: 'alta', Media: 'media', Maxima: 'maxima' };
+    Object.entries(presets).forEach(([label, key]) => {
+      const estimated = total * COMPRESS_RATIOS[key];
+      const saving    = Math.round((1 - COMPRESS_RATIOS[key]) * 100);
+      const el        = document.getElementById('est'+label);
+      el.innerHTML    = `<span style="color:var(--text)">${original}</span>`
+                      + `<span style="color:var(--text2)"> → </span>`
+                      + `<span style="color:var(--success);font-weight:700">${fmt(estimated)}</span>`;
+    });
+  }
+
+  function addFiles(files) {
+    const valid = files.filter(f => ALLOWED.includes(ext(f.name)));
+    if (!valid.length) return;
+    pending.push(...valid);
+    renderPending();
+    updateEstimates();
+    show('btnProc'); show('btnClear');
+  }
+
+  function show(id) { document.getElementById(id).style.display = 'flex'; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+  function renderPending() {
+    const list = document.getElementById('fileList');
+    list.innerHTML = '';
+    pending.forEach((f, i) => list.appendChild(buildCard(`p${i}`, f.name, fmtSize(f.size), 'queued', 'Aguardando')));
+  }
+
+  function buildCard(id, name, sub, state, badgeTxt) {
+    const div = document.createElement('div');
+    div.className = `file-card ${state}`;
+    div.id = `card-${id}`;
+    div.innerHTML = `
+      <div class="card-header">
+        <div class="file-icon">🎬</div>
+        <div class="file-info">
+          <div class="file-name">${name}</div>
+          <div class="file-sub" id="sub-${id}">${sub}</div>
+          <div class="prog-wrap"><div class="prog-fill ${state}" id="prog-${id}"></div></div>
+        </div>
+        <span class="badge ${state}" id="badge-${id}">${badgeTxt}</span>
+      </div>
+      <div class="meta-panel" id="meta-${id}">
+        <div class="meta-title" id="mtitle-${id}">🔍 Metadados encontrados</div>
+        <div class="meta-grid"  id="mgrid-${id}"></div>
+      </div>`;
+    return div;
+  }
+
+  function renderMeta(uiId, meta) {
+    const panel = document.getElementById(`meta-${uiId}`);
+    const title = document.getElementById(`mtitle-${uiId}`);
+    const grid  = document.getElementById(`mgrid-${uiId}`);
+    const keys  = Object.keys(meta || {});
+    panel.classList.add('visible');
+    if (!keys.length) {
+      title.innerHTML = '✅ Nenhum metadado pessoal encontrado';
+      grid.innerHTML  = `<div class="meta-empty">Arquivo já está limpo.</div>`;
+      return;
+    }
+    title.innerHTML = `🔍 Metadados encontrados <span class="meta-count">${keys.length} campos</span>`;
+    grid.innerHTML  = keys.map(k => `
+      <div class="meta-row" id="mrow-${uiId}-${CSS.escape(k)}">
+        <span class="meta-key">${labelFor(k)}</span>
+        <span class="meta-val" id="mval-${uiId}-${CSS.escape(k)}">${String(meta[k]).slice(0,100)}</span>
+        <span class="removed-tag" id="mtag-${uiId}-${CSS.escape(k)}">✓ Removido</span>
+      </div>`).join('');
+    panel.dataset.meta = JSON.stringify(meta);
+  }
+
+  function animateRemoval(uiId) {
+    const panel = document.getElementById(`meta-${uiId}`);
+    const meta  = JSON.parse(panel?.dataset.meta || '{}');
+    const title = document.getElementById(`mtitle-${uiId}`);
+    const keys  = Object.keys(meta);
+    if (!keys.length) return;
+    keys.forEach((k, i) => {
+      setTimeout(() => {
+        const ek  = CSS.escape(k);
+        const row = document.getElementById(`mrow-${uiId}-${ek}`);
+        const val = document.getElementById(`mval-${uiId}-${ek}`);
+        const tag = document.getElementById(`mtag-${uiId}-${ek}`);
+        if (!row) return;
+        row.classList.add('removing');
+        setTimeout(() => {
+          row.classList.remove('removing');
+          row.classList.add('removed');
+          if (val) val.classList.add('struck');
+          if (tag) tag.classList.add('show');
+        }, 380);
+      }, i * 130);
+    });
+    setTimeout(() => {
+      if (title) title.innerHTML =
+        `✅ Metadados removidos <span class="meta-count" style="color:var(--success);border-color:rgba(74,222,128,.3)">${keys.length} campos</span>`;
+    }, keys.length * 130 + 500);
+  }
+
+  function setCard(uiId, state, badge, sub, progClass) {
+    const card = document.getElementById(`card-${uiId}`);
+    const bdg  = document.getElementById(`badge-${uiId}`);
+    const prog = document.getElementById(`prog-${uiId}`);
+    const subEl= document.getElementById(`sub-${uiId}`);
+    if (!card) return;
+    card.className    = `file-card ${state}`;
+    bdg.className     = `badge ${state}`;
+    bdg.textContent   = badge;
+    prog.className    = `prog-fill ${progClass || state}`;
+    subEl.textContent = sub;
+  }
+
+  async function startProcess() {
+    if (!pending.length || busy) return;
+    busy = true;
+    const btn = document.getElementById('btnProc');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Enviando...';
+    document.getElementById('stats').style.display = 'flex';
+    document.getElementById('fileList').innerHTML = '';
+    jobMap = {};
+
+    for (let i = 0; i < pending.length; i++) {
+      const file = pending[i];
+      const uiId = `q${i}`;
+      document.getElementById('fileList').appendChild(
+        buildCard(uiId, file.name, fmtSize(file.size), 'queued', 'Aguardando')
+      );
+
+      const fd = new FormData();
+      fd.append('videos', file);
+      fd.append('mode', currentMode === 'compress' ? 'reencode' : currentMode);
+      fd.append('quality', currentQuality);
+
+      try {
+        const r   = await fetch('/upload', { method: 'POST', body: fd });
+        const d   = await r.json();
+        const job = d.jobs[0];
+        if (job) {
+          jobMap[job.job_id] = { uiId, status: null };
+          loadAndShowMeta(uiId, job.job_id);
+          poll(job.job_id, uiId, currentMode);
+        }
+      } catch {
+        setCard(uiId, 'error', '✗ Erro', 'Falha ao enviar');
+      }
+    }
+
+    pending = [];
+    setMode(currentMode); // restaura texto do botão
+    updateStats();
+  }
+
+  async function loadAndShowMeta(uiId, jobId) {
+    try {
+      const r = await fetch(`/status/${jobId}`);
+      const d = await r.json();
+      renderMeta(uiId, d.metadata_before || {});
+    } catch {}
+  }
+
+  function poll(jobId, uiId, mode) {
+    const iv = setInterval(async () => {
+      try {
+        const r = await fetch(`/status/${jobId}`);
+        const d = await r.json();
+
+        if (d.status === 'processing') {
+          if (mode === 'reencode') {
+            const gpuTxt = d.gpu === true ? '⚡ RTX 3060' : d.gpu === false ? '🖥 CPU' : '...';
+            setCard(uiId, 'reencoding', 'Re-encodando...', `Re-encodando via ${gpuTxt}`, 'reencode');
+          } else {
+            setCard(uiId, 'processing', 'Processando...', 'Removendo metadados...');
+          }
+        } else if (d.status === 'done') {
+          clearInterval(iv);
+          let subTxt = `Salvo: ${d.output_name}`;
+          if (mode === 'reencode' && currentMode !== 'compress') {
+            subTxt = `Re-encodado${d.gpu ? ' via RTX 3060' : ' via CPU'} → ${d.output_name}`;
+          } else if (currentMode === 'compress' && d.savings != null) {
+            const before = d.input_size  >= 1e9 ? (d.input_size/1e9).toFixed(1)+'GB'  : (d.input_size/1e6).toFixed(1)+'MB';
+            const after  = d.output_size >= 1e9 ? (d.output_size/1e9).toFixed(1)+'GB' : (d.output_size/1e6).toFixed(1)+'MB';
+            subTxt = `${before} → ${after}  (${d.savings}% menor)${d.gpu ? ' · RTX 3060' : ''}`;
+          }
+          setCard(uiId, 'done', '✓ Concluído', subTxt);
+          jobMap[jobId].status = 'done';
+          show('btnOpen');
+          animateRemoval(uiId);
+        } else if (d.status === 'error') {
+          clearInterval(iv);
+          setCard(uiId, 'error', '✗ Erro', d.error || 'Erro desconhecido');
+          jobMap[jobId].status = 'error';
+        } else { return; }
+
+        updateStats();
+        checkDone();
+      } catch { clearInterval(iv); }
+    }, 1000);
+  }
+
+  function updateStats() {
+    const vals = Object.values(jobMap);
+    document.getElementById('sTotal').textContent = vals.length;
+    document.getElementById('sDone').textContent  = vals.filter(j=>j.status==='done').length;
+    document.getElementById('sProc').textContent  = vals.filter(j=>!j.status).length;
+    document.getElementById('sErr').textContent   = vals.filter(j=>j.status==='error').length;
+  }
+
+  function checkDone() {
+    const vals = Object.values(jobMap);
+    if (vals.length && vals.every(j => j.status)) {
+      busy = false;
+      document.getElementById('btnProc').disabled = false;
+    }
+  }
+
+  function clearAll() {
+    if (busy) return;
+    pending = []; jobMap = {};
+    document.getElementById('fileList').innerHTML = '';
+    document.getElementById('stats').style.display = 'none';
+    hide('btnProc'); hide('btnClear'); hide('btnOpen');
+    updateEstimates();
+  }
+
+  async function openOutput() { await fetch('/open_output'); }
+
+  async function saveFolder() {
+    const input = document.getElementById('folderInput');
+    const hint  = document.getElementById('folderHint');
+    const path  = input.value.trim();
+    if (!path) return;
+    try {
+      const r = await fetch('/set_folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: path })
+      });
+      const d = await r.json();
+      if (d.ok) {
+        input.className = 'folder-input ok';
+        hint.textContent = '✓ Pasta confirmada — vídeos serão salvos aqui';
+        hint.style.color = 'var(--success)';
+      } else {
+        input.className = 'folder-input error';
+        hint.textContent = '✗ Caminho inválido. Verifique e tente novamente.';
+        hint.style.color = 'var(--error)';
+      }
+    } catch {
+      input.className = 'folder-input error';
+    }
+  }
+
+  async function loadCurrentFolder() {
+    try {
+      const r = await fetch('/current_folder');
+      const d = await r.json();
+      document.getElementById('folderInput').value = d.folder;
+    } catch {}
+  }
+
+  loadCurrentFolder();
+
+  // Heartbeat: servidor desliga sozinho quando o navegador fecha
+  setInterval(() => fetch('/__ping').catch(() => {}), 15000);
+  addEventListener('pagehide', () => navigator.sendBeacon('/__bye'));
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+build/
+dist/
+ffmpeg/
+uploads/
+output/
+installer_output/
+__pycache__/
+*.mp4
+SUBIR_NO_GITHUB.ps1
